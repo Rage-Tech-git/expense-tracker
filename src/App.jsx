@@ -54,36 +54,7 @@ const BASE_CATS = [
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-const SEED = [
-  { category:"Food & Dining",     amount:340,  date:"2026-05-13", note:"Weekly groceries" },
-  { category:"Transport",         amount:89,   date:"2026-05-12", note:"Cab to office" },
-  { category:"Entertainment",     amount:499,  date:"2026-05-11", note:"Netflix subscription" },
-  { category:"Shopping",          amount:1299, date:"2026-05-10", note:"New shirt" },
-  { category:"Food & Dining",     amount:220,  date:"2026-05-09", note:"Restaurant dinner" },
-  { category:"Health",            amount:600,  date:"2026-05-08", note:"Pharmacy" },
-  { category:"Bills & Utilities", amount:850,  date:"2026-05-07", note:"Electricity bill" },
-  { category:"Food & Dining",     amount:180,  date:"2026-05-05", note:"Lunch with friends" },
-  { category:"Transport",         amount:45,   date:"2026-05-04", note:"Auto rickshaw" },
-  { category:"Shopping",          amount:2499, date:"2026-05-03", note:"Amazon order" },
-  { category:"Food & Dining",     amount:260,  date:"2026-05-02", note:"Groceries" },
-  { category:"Other",             amount:500,  date:"2026-05-01", note:"Miscellaneous" },
-  { category:"Food & Dining",     amount:1200, date:"2026-04-28", note:"Monthly groceries" },
-  { category:"Bills & Utilities", amount:1200, date:"2026-04-25", note:"Internet + phone" },
-  { category:"Entertainment",     amount:800,  date:"2026-04-20", note:"Movie + dinner" },
-  { category:"Transport",         amount:350,  date:"2026-04-18", note:"Petrol" },
-  { category:"Health",            amount:1500, date:"2026-04-15", note:"Doctor visit" },
-  { category:"Shopping",          amount:3200, date:"2026-04-10", note:"Clothes shopping" },
-  { category:"Food & Dining",     amount:600,  date:"2026-04-05", note:"Eating out" },
-  { category:"Other",             amount:400,  date:"2026-04-03", note:"Haircut + misc" },
-  { category:"Food & Dining",     amount:1400, date:"2026-03-30", note:"Groceries" },
-  { category:"Bills & Utilities", amount:950,  date:"2026-03-25", note:"Electricity" },
-  { category:"Shopping",          amount:4500, date:"2026-03-22", note:"Holi shopping" },
-  { category:"Entertainment",     amount:1200, date:"2026-03-15", note:"Holi party" },
-  { category:"Transport",         amount:280,  date:"2026-03-12", note:"Ola cabs" },
-  { category:"Health",            amount:800,  date:"2026-03-08", note:"Gym membership" },
-  { category:"Food & Dining",     amount:500,  date:"2026-03-05", note:"Restaurant" },
-  { category:"Other",             amount:350,  date:"2026-03-02", note:"Miscellaneous" },
-].map(function(e, i) { return Object.assign({}, e, { id: i + 1 }); });
+
 
 const fmt    = function(n) { return "\u20B9" + n.toLocaleString("en-IN"); };
 const getCat = function(name, cats) {
@@ -121,15 +92,18 @@ const TITLES = {
 
 /* ═══════════════════════════════════════ APP ═══════════════════════════════════════ */
 export default function App() {
+  const todayStr       = new Date().toISOString().slice(0, 10);
+  const THIS           = new Date().toISOString().slice(0, 7);
+  const thisMonthLabel = new Date().toLocaleString("en-IN", { month:"long", year:"numeric" });
+
   const [tab, setTab]               = useState("dashboard");
-  const [expenses, setExpenses]     = useState(SEED);
+  const [expenses, setExpenses]     = useState([]);
   const [customCats, setCustomCats] = useState([]);
   const [budgets, setBudgets]       = useState({ overall: 0, categories: {} });
-  const [form, setForm]             = useState({ category:"", amount:"", date:"2026-05-14", note:"" });
+  const [form, setForm]             = useState({ category:"", amount:"", date:todayStr, note:"" });
   const [catModal, setCatModal]     = useState(false);
 
   const allCats = useMemo(function() { return BASE_CATS.concat(customCats); }, [customCats]);
-  const THIS    = "2026-05";
 
   const curExp = useMemo(function() {
     return expenses.filter(function(e) { return e.date.startsWith(THIS); });
@@ -151,14 +125,17 @@ export default function App() {
   }, [curExp, allCats]);
 
   const monthlyData = useMemo(function() {
-    const ms  = ["2026-01","2026-02","2026-03","2026-04","2026-05"];
-    const lbs = ["Jan","Feb","Mar","Apr","May"];
-    const def = { "2026-01":7200, "2026-02":6800 };
-    return ms.map(function(m, i) {
-      const t = expenses.filter(function(e) { return e.date.startsWith(m); })
+    const result = [];
+    const now = new Date();
+    for (var i = 4; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = d.toISOString().slice(0, 7);
+      const lbl = d.toLocaleString("en-IN", { month:"short" });
+      const t = expenses.filter(function(e) { return e.date.startsWith(key); })
                         .reduce(function(s, e) { return s + e.amount; }, 0);
-      return { month: lbs[i], total: t || def[m] || 0 };
-    });
+      result.push({ month: lbl, total: t });
+    }
+    return result;
   }, [expenses]);
 
   const sorted = useMemo(function() {
@@ -170,7 +147,7 @@ export default function App() {
     setExpenses(function(p) {
       return [{ id:Date.now(), category:form.category, amount:+form.amount, date:form.date, note:form.note }].concat(p);
     });
-    setForm({ category:"", amount:"", date:"2026-05-14", note:"" });
+    setForm({ category:"", amount:"", date:new Date().toISOString().slice(0,10), note:"" });
     setTab("dashboard");
   }
 
@@ -179,6 +156,8 @@ export default function App() {
   function delExp(id)  { setExpenses(function(p)   { return p.filter(function(e){ return e.id !== id; }); }); }
 
   const ttlSub = TITLES[tab] || ["",""];
+  const pageTitle = ttlSub[0];
+  const pageSub   = tab === "dashboard" ? thisMonthLabel : ttlSub[1];
 
   return (
     <div>
@@ -233,19 +212,20 @@ export default function App() {
           boxShadow:"none" })}>
           <div style={{ fontSize:11, fontWeight:700, color:C.textMuted,
             letterSpacing:"0.14em", textTransform:"uppercase", marginBottom:4 }}>
-            {ttlSub[1]}
+            {pageSub}
           </div>
           <div style={{ fontSize:26, fontWeight:800, color:C.text, letterSpacing:"-0.5px" }}>
-            {ttlSub[0]}
+            {pageTitle}
           </div>
         </div>
 
         {/* Body */}
-        <div style={{ flex:1, overflowY:"auto", paddingBottom:110 }}>
+        <div style={{ flex:1, overflowY:"auto", paddingBottom:140 }}>
           {tab === "dashboard" && (
             <Dashboard total={total} catData={catData} monthlyData={monthlyData}
               recent={sorted.slice(0,5)} txCount={curExp.length}
-              banner={banner} budgets={budgets} allCats={allCats} />
+              banner={banner} budgets={budgets} allCats={allCats}
+              thisMonthLabel={thisMonthLabel} />
           )}
           {tab === "add" && (
             <AddForm form={form} setForm={setForm} onAdd={addExp}
@@ -271,35 +251,36 @@ export default function App() {
           )}
         </div>
 
-        {/* ── Floating glass nav bar ── */}
+        {/* ── Floating FAB — sits above the nav bar ── */}
+        <button onClick={function(){ setTab(tab==="add"?"dashboard":"add"); }}
+          style={{ position:"fixed", bottom:78, left:"50%", transform:"translateX(-50%)",
+            width:58, height:58, borderRadius:20, border:"none", cursor:"pointer", zIndex:100,
+            background: tab==="add"
+              ? "rgba(255,255,255,0.18)"
+              : "linear-gradient(135deg, #7C3AED 0%, #A855F7 100%)",
+            boxShadow: tab==="add"
+              ? "inset 0 1px 0 rgba(255,255,255,0.25), 0 4px 16px rgba(0,0,0,0.3)"
+              : "0 0 28px rgba(168,85,247,0.65), 0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.3)",
+            display:"flex", alignItems:"center", justifyContent:"center",
+            transition:"background .2s, box-shadow .2s" }}>
+          {tab==="add"
+            ? <X size={24} color="rgba(255,255,255,0.85)" />
+            : <Plus size={28} color="#fff" strokeWidth={2.5} />}
+        </button>
+
+        {/* ── Floating glass nav bar — 4 tabs only ── */}
         <div style={Object.assign({}, gl(0.13, 30, 28), {
           position:"fixed", bottom:16, left:"50%", transform:"translateX(-50%)",
           width:"calc(100% - 32px)", maxWidth:398,
-          padding:"10px 8px 10px",
+          padding:"8px 0 8px",
           display:"flex", justifyContent:"space-around", alignItems:"center",
           zIndex:99 })}>
-
           <NBtn icon={<LayoutDashboard size={20}/>} label="Overview"
             active={tab==="dashboard"} onClick={function(){ setTab("dashboard"); }} />
           <NBtn icon={<Wallet size={20}/>} label="Budget"
             active={tab==="budget"} onClick={function(){ setTab("budget"); }} />
-
-          {/* Centre FAB */}
-          <button onClick={function(){ setTab(tab==="add"?"dashboard":"add"); }}
-            style={{ width:54, height:54, borderRadius:18, border:"none", cursor:"pointer",
-              background: tab==="add"
-                ? "rgba(255,255,255,0.15)"
-                : "linear-gradient(135deg, #7C3AED 0%, #A855F7 100%)",
-              boxShadow: tab==="add"
-                ? "inset 0 1px 0 rgba(255,255,255,0.2)"
-                : "0 0 24px rgba(168,85,247,0.6), inset 0 1px 0 rgba(255,255,255,0.3)",
-              display:"flex", alignItems:"center", justifyContent:"center",
-              transition:"background .2s, box-shadow .2s" }}>
-            {tab==="add"
-              ? <X size={22} color="rgba(255,255,255,0.8)" />
-              : <Plus size={26} color="#fff" strokeWidth={2.5} />}
-          </button>
-
+          {/* empty centre slot so tabs flank the FAB naturally */}
+          <div style={{ width:58 }} />
           <NBtn icon={<Tag size={20}/>} label="Categories"
             active={tab==="categories"} onClick={function(){ setTab("categories"); }} />
           <NBtn icon={<List size={20}/>} label="History"
@@ -340,6 +321,7 @@ function Dashboard(props) {
   const banner      = props.banner;
   const budgets     = props.budgets;
   const allCats     = props.allCats;
+  const thisMonthLabel = props.thisMonthLabel;
   const budgetPct   = banner.pct !== null ? Math.min(banner.pct, 1) : 0;
 
   return (
@@ -352,7 +334,7 @@ function Dashboard(props) {
         backgroundImage: "linear-gradient(135deg, " + banner.tint + " 0%, rgba(255,255,255,0.04) 100%)" })}>
         <div style={{ fontSize:11, fontWeight:700, color:C.textMuted,
           letterSpacing:"0.14em", textTransform:"uppercase", marginBottom:8 }}>
-          Spent this month
+          {"Spent this month · " + thisMonthLabel}
         </div>
         <div style={{ fontSize:46, fontWeight:800, color:C.text, letterSpacing:"-1.5px", lineHeight:1 }}>
           {fmt(total)}
@@ -546,15 +528,20 @@ function AddForm(props) {
 
       <div style={Object.assign({}, gl(0.09, 24, 22), { padding:20, marginBottom:22 })}>
         <div style={{ fontSize:11, fontWeight:700, color:C.textMuted,
-          letterSpacing:"0.14em", textTransform:"uppercase", marginBottom:10 }}>Date</div>
+          letterSpacing:"0.14em", textTransform:"uppercase", marginBottom:14 }}>Date</div>
         <input type="date" value={form.date}
           onChange={function(e){ setForm(function(f){ return Object.assign({},f,{date:e.target.value}); }); }}
-          style={inputGl} />
+          style={{ background:"none", border:"none", borderBottom:"2px solid rgba(255,255,255,0.18)",
+            borderRadius:0, padding:"6px 0 10px 0", color:C.text, fontSize:16, fontWeight:600,
+            width:"100%", outline:"none", fontFamily:"'Plus Jakarta Sans',sans-serif",
+            colorScheme:"dark" }} />
         <div style={{ fontSize:11, fontWeight:700, color:C.textMuted,
-          letterSpacing:"0.14em", textTransform:"uppercase", margin:"18px 0 10px" }}>Note</div>
+          letterSpacing:"0.14em", textTransform:"uppercase", margin:"22px 0 14px" }}>Note</div>
         <input type="text" placeholder="What was this for?" value={form.note}
           onChange={function(e){ setForm(function(f){ return Object.assign({},f,{note:e.target.value}); }); }}
-          style={inputGl} />
+          style={{ background:"none", border:"none", borderBottom:"2px solid rgba(255,255,255,0.18)",
+            borderRadius:0, padding:"6px 0 10px 0", color:C.text, fontSize:15,
+            width:"100%", outline:"none", fontFamily:"'Plus Jakarta Sans',sans-serif" }} />
       </div>
 
       <button onClick={onAdd} disabled={!ready}
