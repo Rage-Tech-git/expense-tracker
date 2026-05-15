@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
@@ -97,11 +97,30 @@ export default function App() {
   const thisMonthLabel = new Date().toLocaleString("en-IN", { month:"long", year:"numeric" });
 
   const [tab, setTab]               = useState("dashboard");
-  const [expenses, setExpenses]     = useState([]);
-  const [customCats, setCustomCats] = useState([]);
-  const [budgets, setBudgets]       = useState({ overall: 0, categories: {} });
+  const [expenses, setExpenses]     = useState(function() {
+    try { var s = localStorage.getItem("et_expenses"); return s ? JSON.parse(s) : []; }
+    catch(e) { return []; }
+  });
+  const [customCats, setCustomCats] = useState(function() {
+    try { var s = localStorage.getItem("et_customCats"); return s ? JSON.parse(s) : []; }
+    catch(e) { return []; }
+  });
+  const [budgets, setBudgets]       = useState(function() {
+    try { var s = localStorage.getItem("et_budgets"); return s ? JSON.parse(s) : { overall:0, categories:{} }; }
+    catch(e) { return { overall:0, categories:{} }; }
+  });
   const [form, setForm]             = useState({ category:"", amount:"", date:todayStr, note:"" });
   const [catModal, setCatModal]     = useState(false);
+
+  useEffect(function() {
+    try { localStorage.setItem("et_expenses",   JSON.stringify(expenses)); }   catch(e) {}
+  }, [expenses]);
+  useEffect(function() {
+    try { localStorage.setItem("et_customCats", JSON.stringify(customCats)); } catch(e) {}
+  }, [customCats]);
+  useEffect(function() {
+    try { localStorage.setItem("et_budgets",    JSON.stringify(budgets)); }    catch(e) {}
+  }, [budgets]);
 
   const allCats = useMemo(function() { return BASE_CATS.concat(customCats); }, [customCats]);
 
